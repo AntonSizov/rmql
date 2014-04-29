@@ -13,12 +13,15 @@
 	{exchange_declare, 4},
 	{queue_declare, 3},
 	{queue_declare, 5},
+	{queue_declare, 6},
 	{queue_bind, 3},
+	{queue_bind, 4},
 	{basic_qos, 2},
 	{basic_consume, 3},
 	{basic_consume, 2},
 	{basic_cancel, 2},
 	{basic_publish, 4},
+	{basic_publish, 5},
 	{basic_ack, 2},
 	{basic_reject, 3},
 	{tx_select, 1},
@@ -29,10 +32,11 @@
 -export([connection_start/0, connection_close/1]).
 -export([channel_open/0, channel_open/1, channel_close/1]).
 -export([exchange_declare/4]).
--export([queue_declare/3, queue_declare/5, queue_bind/3]).
+-export([queue_declare/3, queue_declare/5, queue_declare/6]).
+-export([queue_bind/3, queue_bind/4]).
 -export([basic_consume/2, basic_consume/3, basic_cancel/2]).
 -export([basic_qos/2]).
--export([basic_publish/4, basic_ack/2, basic_reject/3]).
+-export([basic_publish/4, basic_publish/5, basic_ack/2, basic_reject/3]).
 -export([tx_select/1, tx_commit/1]).
 
 %% -------------------------------------------------------------------------
@@ -126,10 +130,18 @@ queue_declare(Chan, Queue, Props) when is_list(Props) ->
 -spec queue_declare(pid(), binary(), boolean(), boolean(), boolean()) ->
                     'ok' | {'error', any()}.
 queue_declare(Chan, Queue, Durable, Exclusive, AutoDelete) ->
+	queue_declare(Chan, Queue, Durable, Exclusive, AutoDelete, []).
+
+
+-spec queue_declare(pid(), binary(), boolean(), boolean(), boolean(), list()) ->
+                    'ok' | {'error', any()}.
+queue_declare(Chan, Queue, Durable, Exclusive, AutoDelete, Args) ->
+
     Method = #'queue.declare'{queue = Queue,
                               durable = Durable,
                               exclusive = Exclusive,
-                              auto_delete = AutoDelete},
+                              auto_delete = AutoDelete,
+							  arguments = Args},
     try amqp_channel:call(Chan, Method) of
         #'queue.declare_ok'{} -> ok;
         Other                 -> {error, Other}
@@ -147,6 +159,17 @@ queue_bind(Chan, Queue, Exchange) ->
     catch
         _:Reason -> {error, Reason}
     end.
+
+-spec queue_bind(pid(), binary(), binary(), binary()) ->
+					'ok' | {'error', any()}.
+queue_bind(Chan, Queue, Exchange, RoutingKey) ->
+	QBind = #'queue.bind'{queue = Queue, exchange = Exchange, routing_key = RoutingKey},
+	try amqp_channel:call(Chan, QBind) of
+		#'queue.bind_ok'{} -> ok;
+		Other -> {error, Other}
+	catch
+		_:Reason -> {error, Reason}
+	end.
 
 %% -------------------------------------------------------------------------
 %% Basic methods
@@ -210,6 +233,19 @@ basic_publish(Chan, RoutingKey, Payload, Props = #'P_basic'{}) ->
 basic_publish(Chan, RoutingKey, Payload, PropList) ->
 	Props = prepare_basic_props(PropList),
 	basic_publish(Chan, RoutingKey, Payload, Props).
+
+basic_publish(Chan, Exchange, RoutingKey, Payload, Props = #'P_basic'{}) ->
+	Method = #'basic.publish'{exchange = Exchange, routing_key = RoutingKey},
+	Content = #amqp_msg{payload = Payload, props = Props},
+	try amqp_channel:call(Chan, Method, Content) of
+        ok    -> ok;
+        Other -> {error, Other}
+    catch
+        _:Reason -> {error, Reason}
+    end;
+basic_publish(Chan, Exchange, RoutingKey, Payload, PropList) ->
+	Props = prepare_basic_props(PropList),
+	basic_publish(Chan, Exchange, RoutingKey, Payload, Props).
 
 -spec basic_ack(pid(), non_neg_integer()) -> 'ok' | {'error', any()}.
 basic_ack(Chan, DeliveryTag) ->
