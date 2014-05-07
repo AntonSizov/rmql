@@ -101,7 +101,7 @@ channel_close(Chan) ->
 %% Exchange methods
 %% -------------------------------------------------------------------------
 
--type exch_type() :: fanout.
+-type exch_type() :: fanout | direct.
 
 -spec exchange_declare(pid(), binary(), exch_type(), boolean()) -> 'ok' | {'error', any()}.
 exchange_declare(Channel, Exchange, Type, Durable) ->
