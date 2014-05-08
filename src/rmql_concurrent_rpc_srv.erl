@@ -76,6 +76,7 @@ start_link(Name, Props, Fun) when
 %% ===================================================================
 
 init([Queue, Props, Fun]) ->
+	link(whereis(rmql_pool)),
 	Tid = ets:new(?MODULE, []),
 	{ok, IsSurvive} = application:get_env(rmql, survive),
     FunArity = case erlang:fun_info(Fun, arity) of
