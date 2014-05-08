@@ -54,7 +54,8 @@ start(Props) ->
 		{port, proplists:get_value(port, Props)},
 		{vhost, proplists:get_value(virtual_host, Props, <<"/">>)},
 		{username, proplists:get_value(username, Props, <<"guest">>)},
-		{password, proplists:get_value(password, Props, <<"guest">>)}
+		{password, proplists:get_value(password, Props, <<"guest">>)},
+		{heartbeat, proplists:get_value(heartbeat, Props, 0)}
 	],
 	application:set_env(rmql, amqp_props, AmqpProps),
 	application:set_env(rmql, survive, Survive),
@@ -314,15 +315,17 @@ parse_opts(Opts) ->
 	DVHost 		= proplists:get_value(vhost, DefaultPropList, <<"/">>),
 	DUsername 	= proplists:get_value(username, DefaultPropList, <<"guest">>),
 	DPass 		= proplists:get_value(password, DefaultPropList, <<"guest">>),
+	DHeartBeat	= proplists:get_value(heartbeat, DefaultPropList, 0),
 	DQos 		= proplists:get_value(qos, DefaultPropList, 0),
 
 	%% custom amqp props definition
-	Host    = proplists:get_value(host, Opts, DHost),
-	Port 	= proplists:get_value(port, Opts, DPort),
-	VHost 	= proplists:get_value(vhost, Opts, DVHost),
-	User 	= proplists:get_value(username, Opts, DUsername),
-	Pass 	= proplists:get_value(password, Opts, DPass),
-	Qos 	= proplists:get_value(qos, Opts, DQos),
+	Host	    = proplists:get_value(host, Opts, DHost),
+	Port	 	= proplists:get_value(port, Opts, DPort),
+	VHost	 	= proplists:get_value(vhost, Opts, DVHost),
+	User	 	= proplists:get_value(username, Opts, DUsername),
+	Pass	 	= proplists:get_value(password, Opts, DPass),
+	HeartBeat	= proplists:get_value(heartbeat, Opts, DHeartBeat),
+	Qos		 	= proplists:get_value(qos, Opts, DQos),
 
 	AmqpSpec = #amqp_params_network{
 					username = User,
@@ -330,7 +333,7 @@ parse_opts(Opts) ->
 					virtual_host = VHost,
 					host = Host,
 					port = Port,
-					heartbeat = 0
+					heartbeat = HeartBeat
 				},
 	{ok, AmqpSpec, Qos}.
 
