@@ -65,14 +65,16 @@ connection_start() ->
 	{ok, AmqpSpec, _Qos} = parse_opts([]),
 	%% To avoid deadlock on app shutdown add timeout to start amqp connection
 	Pid = self(),
-	spawn(fun() ->
+	Spawned = spawn(fun() ->
 		Result = amqp_connection:start(AmqpSpec),
 		Pid ! {amqp_connection, Result}
 	end),
 	receive
 		{amqp_connection, Result} -> Result
-	after
-		2000 -> {error, timeout}
+	after 2000 ->
+		exit(Spawned, timeout),
+		receive {amqp_connection, _Result} -> ok %% skip msg in case if it was already sent
+		after 0 -> {error, timeout} end
 	end.
 
 
