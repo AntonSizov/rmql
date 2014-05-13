@@ -76,6 +76,7 @@ start_link(Name, Props, Fun) when
 %% ===================================================================
 
 init([Queue, Props, Fun]) ->
+    process_flag(trap_exit, true),
 	link(whereis(rmql_pool)),
 	Tid = ets:new(?MODULE, []),
 	{ok, IsSurvive} = application:get_env(rmql, survive),
@@ -146,6 +147,7 @@ handle_info(Message, State) ->
 	{stop, {unexpected_info, Message}, State}.
 
 terminate(_Reason, #st{channel = Channel}) ->
+	unlink(whereis(rmql_pool)),
     catch(amqp_channel:close(Channel)),
     ok.
 
